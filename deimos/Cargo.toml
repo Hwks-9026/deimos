@@ -1,0 +1,21 @@
+[package]
+name = "deimos"
+version = "0.1.0"
+edition = "2024"
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
+
+[[bin]]
+name = "deimos"
+test = false
+bench = false
+
+[unstable]
+json-target-spec = true
+
+[dependencies]
+bootloader = "0.9"
