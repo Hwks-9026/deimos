@@ -1,5 +1,4 @@
 use crate::{gdt, println, print};
-use spin;
 use pic8259::ChainedPics;
 use x86_64::structures::idt::{
     InterruptDescriptorTable, 
@@ -68,14 +67,13 @@ extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStac
 
     let scancode: u8 = unsafe { port.read() };
 
-    if let Ok(Some(key_event)) = keyboard.add_byte(scancode) {
-        if let Some(key) = keyboard.process_keyevent(key_event) {
-            match key {
-                DecodedKey::Unicode(character) => print!("{}", character),
-                DecodedKey::RawKey(key) => {}// print!("{:?}", key),
-            }
+    if let Ok(Some(key_event)) = keyboard.add_byte(scancode) && let Some(key) = keyboard.process_keyevent(key_event) {
+        match key {
+            DecodedKey::Unicode(character) => print!("{}", character),
+            DecodedKey::RawKey(_key) => {}// print!("{:?}", key),
         }
     }
+
 
     unsafe {
         PICS.lock().notify_end_of_interrupt(InterruptIndex::Keyboard.as_u8());

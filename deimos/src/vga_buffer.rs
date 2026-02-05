@@ -127,9 +127,9 @@ impl VGAWriter {
         unsafe { 
             let mut d4 = Port::new(0x3D4);
             let mut d5 = Port::new(0x3D5);
-            d4.write(0x0F as u8);
+            d4.write(0x0F_u8);
             d5.write((pos & 0xFF) as u8);
-            d4.write(0x0E as u8);
+            d4.write(0x0E_u8);
             d5.write(((pos >> 8) & 0xFF) as u8);
         }
 
@@ -137,7 +137,7 @@ impl VGAWriter {
 
 }
 
-use core::fmt::{self, Write};
+use core::fmt;
 impl fmt::Write for VGAWriter {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         self.write_string(s);
@@ -147,8 +147,6 @@ impl fmt::Write for VGAWriter {
 
 use lazy_static::lazy_static;
 use spin::Mutex;
-
-use crate::interrupts;
 
 lazy_static! {
     pub static ref WRITER: Mutex<VGAWriter> = Mutex::new(VGAWriter {

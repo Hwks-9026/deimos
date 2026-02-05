@@ -1,3 +1,4 @@
+#[cfg(test)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u32)]
 pub enum QemuExitCode {
@@ -5,6 +6,7 @@ pub enum QemuExitCode {
     Failed = 0x11,
 }
 
+#[cfg(test)]
 pub fn exit_qemu(exit_code: QemuExitCode) -> ! {
     use x86_64::instructions::port::Port;
 
