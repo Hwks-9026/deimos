@@ -29,4 +29,3 @@ impl<T> Testable for T where T: Fn() {
 fn trivial_assertion() {
     assert_eq!(1, 1);
 }
-

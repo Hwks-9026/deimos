@@ -1,15 +1,31 @@
-use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
-use crate::println;
+use crate::{gdt, println};
+use spin;
+use pic8259::ChainedPics;
+use x86_64::structures::idt::{
+    InterruptDescriptorTable, 
+    InterruptStackFrame
+};
+
+pub const PIC_1_OFFSET: u8 = 32;
+pub const PIC_2_OFFSET: u8 = PIC_1_OFFSET + 8;
+
+pub static PICS: spin::Mutex<ChainedPics> =
+    spin::Mutex::new(unsafe {
+        ChainedPics::new(PIC_1_OFFSET, PIC_2_OFFSET)
+    });
 
 
 use lazy_static::lazy_static;
-
-//THIS IS UNSAFE (we don't care) BUT LAZY_STATIC ABSTRACTS IT AWAY
 lazy_static! {
     static ref IDT: InterruptDescriptorTable = {
         let mut idt = InterruptDescriptorTable::new();
         idt.breakpoint.set_handler_fn(breakpoint_handler);
-        idt.double_fault.set_handler_fn(double_fault_handler);
+        unsafe {
+            idt.double_fault.set_handler_fn(double_fault_handler)
+                .set_stack_index(gdt::DOUBLE_FAULT_IST_INDEX);
+        }
+        idt[InterruptIndex::Timer.as_usize()]
+            .set_handler_fn(timer_interrupt_handler);
         idt
     };
 }
@@ -26,14 +42,50 @@ extern "x86-interrupt" fn double_fault_handler(stack_frame: InterruptStackFrame,
     panic!("EXCEPTION WITH ERROR CODE {:?}: DOUBLE FAULT\n{:#?}", error_code, stack_frame);
 }
 
+extern "x86-interrupt" fn timer_interrupt_handler(_stack_frame: InterruptStackFrame) {
+    println!(".");
+
+    unsafe {
+        PICS.lock().notify_end_of_interrupt(InterruptIndex::Timer.as_u8());
+    }
+}
+
 #[test_case]
 fn test_breakpoint_exception() {
     x86_64::instructions::interrupts::int3();
 }
 
+// TODO: This test will fail, figure out how to make unit tests that fail
 #[test_case]
-fn trigger_page_fault() {
-    unsafe {
+fn trigger_page_fault() {     unsafe {
         *(0xdeadbeef as *mut u8) = 42;
     };
 }
+// TODO: This test will fail, figure out how to make unit tests that fail
+#[test_case]
+fn test_stack_overflow() {
+    #[allow(unconditional_recursion)]
+    fn overflow() {
+        overflow();
+    }
+    overflow();
+    volatile::Volatile::new(0).read(); // ensures optimization wont remove the function calls;
+}
+
+#[derive(Debug, Clone, Copy)]
+#[repr(u8)]
+pub enum InterruptIndex {
+    Timer = PIC_1_OFFSET,
+}
+
+impl InterruptIndex {
+    fn as_u8(self) -> u8 {
+        self as u8
+    }
+
+    fn as_usize(self) -> usize {
+        usize::from(self.as_u8())
+    }
+}
+
+

@@ -9,6 +9,7 @@ mod vga_buffer;
 mod interrupts;
 mod emulation;
 mod serial;
+mod gdt;
 
 #[cfg(test)]
 mod tests;
@@ -34,7 +35,12 @@ fn panic(info: &PanicInfo) -> ! {
 }
 
 fn init() {
+    gdt::init();
     interrupts::init_idt();
+    unsafe {
+        interrupts::PICS.lock().initialize();
+    }
+    x86_64::instructions::interrupts::enable();
 }
 
 #[unsafe(no_mangle)]
@@ -51,12 +57,8 @@ pub extern "C" fn _start() -> ! {
 
 fn main() {
     println!("Booting deimOS...");
+    print!("Initializing...");
     init();
-    fn stack_overflow() {
-        stack_overflow();
-    }
-    stack_overflow();
-
-    println!("It did not crash!");
+    println!("[ok]");
 }
 
