@@ -3,7 +3,11 @@
 #![feature(custom_test_frameworks)]
 #![test_runner(crate::tests::test_runner)]
 #![reexport_test_harness_main = "test_main"]
+
 mod vga_buffer;
+mod emulation;
+mod serial;
+
 #[cfg(test)]
 mod tests;
 
