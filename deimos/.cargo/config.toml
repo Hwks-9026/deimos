@@ -2,6 +2,13 @@
 json-target-spec = true
 build-std-features = ["compiler-builtins-mem"]
 build-std = ["core", "compiler_builtins"]
+panic-abort-tests = true
 
 [build]
 target = "deimos_target.json"
+
+[test]
+target = "deimos_target.json"
+
+[target.'cfg(target_os = "none")']
+runner = "bootimage runner"

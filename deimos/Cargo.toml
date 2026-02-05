@@ -11,7 +11,7 @@ panic = "abort"
 
 [[bin]]
 name = "deimos"
-test = false
+test = true
 bench = false
 
 [unstable]
@@ -19,3 +19,6 @@ json-target-spec = true
 
 [dependencies]
 bootloader = "0.9"
+volatile = "0.2.6"
+lazy_static = {version="1.0", features=["spin_no_std"]}
+spin = "0.5.2"
