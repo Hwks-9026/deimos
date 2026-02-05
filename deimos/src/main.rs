@@ -12,10 +12,23 @@ mod serial;
 mod tests;
 
 use core::panic::PanicInfo;
+#[cfg(not(test))]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     println!("{}", info);
     loop {}
+}
+
+#[cfg(test)]
+#[panic_handler]
+fn panic(info: &PanicInfo) -> ! {
+    use crate::emulation::{QemuExitCode, exit_qemu};
+
+    serial_println!("[Failed]\n");
+    println!("Error: {}\n", info);
+    exit_qemu(QemuExitCode::Failed);
+
+    loop {} //Still need a loop - Compiler does not know that exit_qemu will terminate the code
 }
 
 
