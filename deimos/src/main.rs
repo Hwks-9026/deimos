@@ -44,6 +44,8 @@ fn init() {
 #[unsafe(no_mangle)]
 pub extern "C" fn _start() -> ! {
 
+    vga_buffer::init();
+
     #[cfg(test)]
     test_main();
     #[cfg(test)]

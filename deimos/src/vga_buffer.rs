@@ -1,5 +1,3 @@
-
-
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
@@ -63,11 +61,13 @@ impl VGAWriter {
             match byte {
                 // printable ASCII byte or newline
                 0x20..=0x7e | b'\n' => self.write_byte(byte),
+                0x08 => self.backspace(),
                 // not part of printable ASCII range
-                _ => self.write_byte(0xe8)
+                _ => {} //self.write_byte(0xe8) // CAN USE THIS TO PRINT A 'BAD' CHAR
             }
 
         }
+        self.update_cursor();
     }
 
    pub fn write_byte(&mut self, byte: u8) {
@@ -88,6 +88,15 @@ impl VGAWriter {
                 });
                 self.column_position += 1;
             }
+        }
+    }
+    
+    fn backspace(&mut self) {
+        if self.column_position > 0 {
+            self.column_position -= 1;
+            self.write_byte(b' ');
+            self.column_position -= 1;
+            self.update_cursor();
         }
     }
 
@@ -112,9 +121,23 @@ impl VGAWriter {
         }
     }
 
+    fn update_cursor(&self) {
+        let pos: u16 = (( BUFFER_HEIGHT - 1 ) * BUFFER_WIDTH + self.column_position) as u16;
+        use x86_64::instructions::port::Port;
+        unsafe { 
+            let mut d4 = Port::new(0x3D4);
+            let mut d5 = Port::new(0x3D5);
+            d4.write(0x0F as u8);
+            d5.write((pos & 0xFF) as u8);
+            d4.write(0x0E as u8);
+            d5.write(((pos >> 8) & 0xFF) as u8);
+        }
+
+    }
+
 }
 
-use core::fmt;
+use core::fmt::{self, Write};
 impl fmt::Write for VGAWriter {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         self.write_string(s);
@@ -130,7 +153,7 @@ use crate::interrupts;
 lazy_static! {
     pub static ref WRITER: Mutex<VGAWriter> = Mutex::new(VGAWriter {
         column_position: 0,
-        color_code: ColorCode::new(Color::LightBlue, Color::Black),
+        color_code: ColorCode::new(Color::LightRed, Color::Black),
         buffer: unsafe { &mut *(0xb8000 as *mut Buffer) },
     });
 }
@@ -153,6 +176,15 @@ pub fn _print(args: fmt::Arguments) {
     interrupts::without_interrupts(|| {
         WRITER.lock().write_fmt(args).unwrap();
     });
+}
+
+pub fn init() {
+    let mut writer = WRITER.lock();
+    for _ in 0..BUFFER_HEIGHT {
+        writer.new_line();
+    }
+    writer.update_cursor();
+    
 }
 
 #[test_case]
