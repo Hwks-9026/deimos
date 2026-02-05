@@ -3,6 +3,9 @@ use crate::emulation::{exit_qemu, QemuExitCode};
 
 #[cfg(test)]
 pub fn test_runner(tests: &[&dyn Testable]) {
+
+    crate::init();
+
     serial_println!("Running {} test(s)", tests.len());
     for test in tests {
         test.run();

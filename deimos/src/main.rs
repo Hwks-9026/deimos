@@ -1,10 +1,12 @@
 #![no_std]
 #![no_main]
+#![feature(abi_x86_interrupt)]
 #![feature(custom_test_frameworks)]
 #![test_runner(crate::tests::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
 mod vga_buffer;
+mod interrupts;
 mod emulation;
 mod serial;
 
@@ -31,13 +33,16 @@ fn panic(info: &PanicInfo) -> ! {
     loop {} //Still need a loop - Compiler does not know that exit_qemu will terminate the code
 }
 
+fn init() {
+    interrupts::init_idt();
+}
 
 #[unsafe(no_mangle)]
 pub extern "C" fn _start() -> ! {
     
     #[cfg(test)]
     test_main();
-    
+
     #[cfg(not(test))]
     main();
 
@@ -46,5 +51,12 @@ pub extern "C" fn _start() -> ! {
 
 fn main() {
     println!("Booting deimOS...");
+    init();
+    fn stack_overflow() {
+        stack_overflow();
+    }
+    stack_overflow();
+
+    println!("It did not crash!");
 }
 
