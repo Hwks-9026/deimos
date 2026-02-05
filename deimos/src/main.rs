@@ -30,8 +30,6 @@ fn panic(info: &PanicInfo) -> ! {
     serial_println!("[Failed]\n");
     println!("Error: {}\n", info);
     exit_qemu(QemuExitCode::Failed);
-
-    loop {} //Still need a loop - Compiler does not know that exit_qemu will terminate the code
 }
 
 fn init() {
@@ -45,20 +43,27 @@ fn init() {
 
 #[unsafe(no_mangle)]
 pub extern "C" fn _start() -> ! {
-    
+
     #[cfg(test)]
     test_main();
+    #[cfg(test)]
+    loop {} //neccesary because the compiler can't realize that test_main returns !
 
     #[cfg(not(test))]
     main();
 
-    loop {}
 }
 
-fn main() {
+fn main() -> ! {
     println!("Booting deimOS...");
     print!("Initializing...");
     init();
     println!("[ok]");
+    hlt();
 }
 
+fn hlt() -> ! {
+    loop {
+        x86_64::instructions::hlt();
+    }
+}
