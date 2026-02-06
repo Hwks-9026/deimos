@@ -43,7 +43,8 @@ fn init() {
 }
 
 use bootloader::{BootInfo, entry_point};
-use x86_64::VirtAddr;
+use x86_64::{VirtAddr, structures::paging::Translate};
+
 
 #[cfg(test)]
 entry_point!(test_main);
@@ -64,12 +65,19 @@ fn main(boot_info: &'static BootInfo) -> ! {
     println!("[ok]");
     
     let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
-    let l4_table = unsafe { memory::active_level_4_table(phys_mem_offset) };
+    let mapper = unsafe {memory::init(phys_mem_offset)};
 
-    for (i, entry) in l4_table.iter().enumerate() {
-        if !entry.is_unused() {
-            println!("L4 Entry {}: {:?}", i, entry);
-        }
+    let addrs = [
+        0xb8000,
+        0x201008,
+        0x0100_0020_1a10,
+        boot_info.physical_memory_offset
+    ];
+
+    for &addr in &addrs {
+        let virt = VirtAddr::new(addr);
+        let phys = mapper.translate_addr(virt);
+        println!("{:?} -> {:?}", virt, phys);
     }
 
     hlt();
