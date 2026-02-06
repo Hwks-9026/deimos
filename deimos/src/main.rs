@@ -43,7 +43,9 @@ fn init() {
 }
 
 use bootloader::{BootInfo, entry_point};
-use x86_64::{VirtAddr, structures::paging::Translate};
+use x86_64::{VirtAddr, structures::paging::{Page}};
+
+use crate::memory::BootInfoFrameAllocator;
 
 
 #[cfg(test)]
@@ -63,22 +65,6 @@ fn main(boot_info: &'static BootInfo) -> ! {
     print!("Initializing...");
     init();
     println!("[ok]");
-    
-    let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
-    let mapper = unsafe {memory::init(phys_mem_offset)};
-
-    let addrs = [
-        0xb8000,
-        0x201008,
-        0x0100_0020_1a10,
-        boot_info.physical_memory_offset
-    ];
-
-    for &addr in &addrs {
-        let virt = VirtAddr::new(addr);
-        let phys = mapper.translate_addr(virt);
-        println!("{:?} -> {:?}", virt, phys);
-    }
 
     hlt();
 }

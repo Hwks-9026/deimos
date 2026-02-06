@@ -1,10 +1,47 @@
 use x86_64::{
-    structures::paging::{
-        PageTable,
-        OffsetPageTable,
-    },
-    VirtAddr,
+    PhysAddr, VirtAddr, registers, structures::paging::{
+        FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB
+    }
 };
+use bootloader::bootinfo::{
+    MemoryMap,
+    MemoryRegionType,
+};
+
+// A FrameAllocator that returns usable frames from the Bootloader's Memory Map
+pub struct BootInfoFrameAllocator {
+    memory_map: &'static MemoryMap,
+    next: usize
+}
+
+impl BootInfoFrameAllocator {
+    pub unsafe fn init(memory_map: &'static MemoryMap) -> Self {
+        BootInfoFrameAllocator {
+            memory_map,
+            next: 0
+        }
+    }
+    fn usable_frames(&self) -> impl Iterator<Item = PhysFrame> {
+        let regions = self.memory_map.iter();
+        let usable_regions = regions
+            .filter(|r| r.region_type == MemoryRegionType::Usable);
+        let addr_ranges = usable_regions
+            .map(|r| r.range.start_addr()..r.range.end_addr());
+        let frame_addrs = addr_ranges
+            .flat_map(|r| r.step_by(4096));
+        frame_addrs.map(|addr| PhysFrame::containing_address(
+                PhysAddr::new(addr)))
+    }
+
+}
+
+unsafe impl FrameAllocator<Size4KiB> for BootInfoFrameAllocator {
+    fn allocate_frame(&mut self) -> Option<PhysFrame<Size4KiB>> {
+        let frame = self.usable_frames().nth(self.next);
+        self.next += 1;
+        frame
+    }
+}
 
 pub unsafe fn init(phys_mem_offset: VirtAddr) -> OffsetPageTable<'static> {
     unsafe {
