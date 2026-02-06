@@ -3,12 +3,13 @@
 #![feature(abi_x86_interrupt)]
 #![feature(custom_test_frameworks)]
 #![test_runner(crate::tests::test_runner)]
-#![reexport_test_harness_main = "test_main"]
+#![reexport_test_harness_main = "test_run"]
 
 mod vga_buffer;
 mod interrupts;
 mod emulation;
 mod serial;
+mod memory;
 mod gdt;
 
 #[cfg(test)]
@@ -41,30 +42,35 @@ fn init() {
     x86_64::instructions::interrupts::enable();
 }
 
-#[unsafe(no_mangle)]
-pub extern "C" fn _start() -> ! {
+use bootloader::{BootInfo, entry_point};
+use x86_64::VirtAddr;
 
-    vga_buffer::init();
+#[cfg(test)]
+entry_point!(test_main);
 
-    #[cfg(test)]
-    test_main();
-    #[cfg(test)]
-    loop {} //neccesary because the compiler can't realize that test_main returns !
-
-    #[cfg(not(test))]
-    main();
-
+#[cfg(test)]
+fn test_main(_boot_info: &'static BootInfo) -> ! {
+    test_run(); loop{}
 }
 
-fn main() -> ! {
+#[cfg(not(test))]
+entry_point!(main);
+
+fn main(boot_info: &'static BootInfo) -> ! {
+    vga_buffer::init();
     println!("Booting deimOS...");
     print!("Initializing...");
     init();
     println!("[ok]");
-    println!("Trying to cause page fault...");
+    
+    let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
+    let l4_table = unsafe { memory::active_level_4_table(phys_mem_offset) };
 
-    let ptr = 0xdeadbeaf as *mut u8;
-    unsafe { *ptr = 42; }
+    for (i, entry) in l4_table.iter().enumerate() {
+        if !entry.is_unused() {
+            println!("L4 Entry {}: {:?}", i, entry);
+        }
+    }
 
     hlt();
 }
