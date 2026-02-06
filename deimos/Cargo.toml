@@ -14,9 +14,6 @@ name = "deimos"
 test = true
 bench = false
 
-[unstable]
-json-target-spec = true
-
 [dependencies]
 bootloader = "0.9"
 volatile = "0.2.6"

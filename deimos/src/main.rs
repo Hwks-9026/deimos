@@ -61,6 +61,11 @@ fn main() -> ! {
     print!("Initializing...");
     init();
     println!("[ok]");
+    println!("Trying to cause page fault...");
+
+    let ptr = 0xdeadbeaf as *mut u8;
+    unsafe { *ptr = 42; }
+
     hlt();
 }
 
