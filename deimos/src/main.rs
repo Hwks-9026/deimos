@@ -67,12 +67,34 @@ use alloc::boxed::Box;
 fn main(boot_info: &'static BootInfo) -> ! {
     vga_buffer::init();
     println!("Booting deimOS...");
+    
     print!("Initializing...");
     init();
+    let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
     println!("[ok]");
-    let x = Box::new(41);
 
-    hlt();
+    print!("Creating Memory Mapper...");
+    let mut mapper = unsafe { memory::init(phys_mem_offset) };
+    println!("[ok]");
+
+
+    print!("Creating Frame Allocator...");
+    let mut frame_allocator = unsafe { 
+        BootInfoFrameAllocator::init(&boot_info.memory_map) 
+    };
+    println!("[ok]");
+
+    print!("Initializing Global Heap Allocator...");
+    allocator::init_heap(&mut mapper, &mut frame_allocator).expect("[err: heap initialization failed]");
+    println!("[ok]");
+    
+    print!("Testing heap allocation...");
+    let heap_string = Box::new("[ok]");
+    print!("{}", heap_string);
+    
+    
+
+    hlt(); // call halt that way when interrupts aren't firing, the CPU isn't active
 }
 
 fn hlt() -> ! {
