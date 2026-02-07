@@ -5,9 +5,12 @@
 #![test_runner(crate::tests::test_runner)]
 #![reexport_test_harness_main = "test_run"]
 
+extern crate alloc;
+
 mod vga_buffer;
 mod interrupts;
 mod emulation;
+mod allocator;
 mod serial;
 mod memory;
 mod gdt;
@@ -59,12 +62,15 @@ fn test_main(_boot_info: &'static BootInfo) -> ! {
 #[cfg(not(test))]
 entry_point!(main);
 
+use alloc::boxed::Box;
+
 fn main(boot_info: &'static BootInfo) -> ! {
     vga_buffer::init();
     println!("Booting deimOS...");
     print!("Initializing...");
     init();
     println!("[ok]");
+    let x = Box::new(41);
 
     hlt();
 }
