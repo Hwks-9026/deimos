@@ -8,7 +8,7 @@ use x86_64::{instructions::hlt, structures::idt::{
 pub const PIC_1_OFFSET: u8 = 32;
 pub const PIC_2_OFFSET: u8 = PIC_1_OFFSET + 8;
 
-const TIMER_HZ: u64 = 500;
+const TIMER_HZ: u64 = 100;
 
 pub static PICS: spin::Mutex<ChainedPics> =
     spin::Mutex::new(unsafe {
@@ -94,15 +94,9 @@ extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStac
     let mut keyboard = KEYBOARD.lock();
     let mut port = Port::new(0x60);
 
+
     let scancode: u8 = unsafe { port.read() };
-
-    if let Ok(Some(key_event)) = keyboard.add_byte(scancode) && let Some(key) = keyboard.process_keyevent(key_event) {
-        match key {
-            DecodedKey::Unicode(character) => print!("{}", character),
-            DecodedKey::RawKey(_key) => {}// print!("{:?}", key),
-        }
-    }
-
+    crate::async_proc::keyboard::add_scancode(scancode);
 
     unsafe {
         PICS.lock().notify_end_of_interrupt(InterruptIndex::Keyboard.as_u8());

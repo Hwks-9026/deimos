@@ -23,6 +23,13 @@ x86_64 = "0.14.2"
 uart_16550 = "0.2.0"
 pic8259 = "0.10.1"
 pc-keyboard = "0.7.0"
+crossbeam-queue = {version = "0.3.11", default-features = false, features = ["alloc"]}
+conquer-once = {version = "0.2.0", default-features = false}
+
+[dependencies.futures-util]
+version = "0.3.4"
+default-features = false
+features = ["alloc"]
 
 [package.metadata.bootimage]
 run-args = ["-serial", "stdio",
