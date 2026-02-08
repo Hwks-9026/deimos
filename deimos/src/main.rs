@@ -41,7 +41,7 @@ fn panic(info: &PanicInfo) -> ! {
     exit_qemu(QemuExitCode::Failed);
 }
 
-fn init() {
+fn init(boot_info: &'static BootInfo) {
     use hardware_interface::{gdt, interrupts};
     gdt::init();
     interrupts::init_idt();
@@ -49,6 +49,28 @@ fn init() {
         interrupts::PICS.lock().initialize();
     }
     x86_64::instructions::interrupts::enable();
+    print!("Aquiring physical memory offset...");
+    let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
+    println!("[ok]");
+
+    print!("Creating Memory Mapper...");
+    let mut mapper = unsafe { memory_management::page_table::init(phys_mem_offset) };
+    println!("[ok]");
+
+
+    print!("Creating Frame Allocator...");
+    let mut frame_allocator = unsafe { 
+        BootInfoFrameAllocator::init(&boot_info.memory_map) 
+    };
+    println!("[ok]");
+
+    print!("Initializing Global Heap Allocator...");
+    allocator::init_heap(&mut mapper, &mut frame_allocator).expect("[err: heap initialization failed]");
+    println!("[ok]");
+    
+    print!("Testing heap allocation...");
+    let heap_string = Box::new("[ok]");
+    println!("{}", heap_string);
 }
 
 use bootloader::{BootInfo, entry_point};
@@ -73,30 +95,9 @@ fn main(boot_info: &'static BootInfo) -> ! {
     vga_buffer::init();
     println!("Booting deimOS...");
     
-    print!("Initializing...");
-    init();
-    let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
-    println!("[ok]");
-
-    print!("Creating Memory Mapper...");
-    let mut mapper = unsafe { memory_management::page_table::init(phys_mem_offset) };
-    println!("[ok]");
-
-
-    print!("Creating Frame Allocator...");
-    let mut frame_allocator = unsafe { 
-        BootInfoFrameAllocator::init(&boot_info.memory_map) 
-    };
-    println!("[ok]");
-
-    print!("Initializing Global Heap Allocator...");
-    allocator::init_heap(&mut mapper, &mut frame_allocator).expect("[err: heap initialization failed]");
-    println!("[ok]");
-    
-    print!("Testing heap allocation...");
-    let heap_string = Box::new("[ok]");
-    println!("{}", heap_string);
-    
+    println!("Initializing...\n"); // 2 newlines are intentional
+    init(boot_info);
+    println!("\n[ok]\n");
     
 
     hlt(); // call halt that way when interrupts aren't firing, the CPU isn't active

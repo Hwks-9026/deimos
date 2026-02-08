@@ -32,7 +32,7 @@ impl ColorCode {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C)] //neccesary to ensure that the layout in memory is like the layout in code
-struct ScreenChar {
+pub struct ScreenChar {
     ascii_character: u8,
     color_code: ColorCode,
 }
@@ -69,8 +69,17 @@ impl VGAWriter {
         }
         self.update_cursor();
     }
+   
+    pub fn write_byte(&mut self, byte: u8) {
+        self.write_byte_color_code(byte, self.color_code); 
+    }
 
-   pub fn write_byte(&mut self, byte: u8) {
+    #[allow(dead_code)]
+    pub fn write_byte_colored(&mut self, byte: u8, fg: Color, bg: Color) {
+        self.write_byte_color_code(byte, ColorCode::new(fg, bg)); 
+    }
+
+    fn write_byte_color_code(&mut self, byte: u8, color_code: ColorCode) {
         match byte {
             b'\n' => self.new_line(),
             byte => {
@@ -81,12 +90,20 @@ impl VGAWriter {
                 let row = BUFFER_HEIGHT - 1;
                 let col = self.column_position;
 
-                let color_code = self.color_code;
                 self.buffer.chars[row][col].write(ScreenChar {
                     ascii_character: byte,
                     color_code,
                 });
                 self.column_position += 1;
+            }
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn fill(&mut self, char: ScreenChar) {
+        for row in self.buffer.chars.iter_mut() {
+            for cell in row.iter_mut() {
+                cell.write(char);
             }
         }
     }

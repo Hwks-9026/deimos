@@ -1,7 +1,7 @@
 use crate::{print, println};
 
 pub const HEAP_START: usize = 0x_4444_4444_0000;
-pub const HEAP_SIZE: usize = 1024*1024*32;
+pub const HEAP_SIZE: usize = 1024*1024*8/6;
 
 use linked_list_allocator::LockedHeap;
 
