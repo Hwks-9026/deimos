@@ -8,6 +8,8 @@ use x86_64::{instructions::hlt, structures::idt::{
 pub const PIC_1_OFFSET: u8 = 32;
 pub const PIC_2_OFFSET: u8 = PIC_1_OFFSET + 8;
 
+const TIMER_HZ: u64 = 500;
+
 pub static PICS: spin::Mutex<ChainedPics> =
     spin::Mutex::new(unsafe {
         ChainedPics::new(PIC_1_OFFSET, PIC_2_OFFSET)
@@ -34,6 +36,21 @@ lazy_static! {
 
 pub fn init_idt() {
     IDT.load();
+    set_timer_pace();
+}
+
+fn set_timer_pace() {
+    let devisor: u16 = (1193182/TIMER_HZ) as u16;
+    let bytes = devisor.to_le_bytes();
+
+    use x86_64::instructions::port::Port;
+    let mut port_control = Port::new(0x43);
+    let mut port_divisor = Port::new(0x40);
+    unsafe {
+        port_control.write(0x36_u8);
+        port_divisor.write(bytes[0]);
+        port_divisor.write(bytes[1]);
+    }
 }
 
 extern "x86-interrupt" fn breakpoint_handler(stack_frame: InterruptStackFrame) {
