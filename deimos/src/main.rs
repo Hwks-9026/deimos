@@ -2,23 +2,25 @@
 #![no_main]
 #![feature(abi_x86_interrupt)]
 #![feature(custom_test_frameworks)]
-#![test_runner(crate::tests::test_runner)]
+#![test_runner(crate::tests::tests::test_runner)]
 #![reexport_test_harness_main = "test_run"]
 
 extern crate alloc;
 
-mod vga_buffer;
-mod interrupts;
+
+mod hardware_interface;
+mod memory_management;
 mod emulation;
-mod allocator;
-mod serial;
-mod memory;
-mod gdt;
+
+
+use hardware_interface::vga_buffer;
+
 
 #[cfg(test)]
 mod tests;
 
 use core::panic::PanicInfo;
+
 #[cfg(not(test))]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
@@ -27,9 +29,12 @@ fn panic(info: &PanicInfo) -> ! {
 }
 
 #[cfg(test)]
+use hardware_interface::serial;
+
+#[cfg(test)]
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    use crate::emulation::{QemuExitCode, exit_qemu};
+    use crate::emulation::qemu::{QemuExitCode, exit_qemu};
 
     serial_println!("[Failed]\n");
     println!("Error: {}\n", info);
@@ -37,6 +42,7 @@ fn panic(info: &PanicInfo) -> ! {
 }
 
 fn init() {
+    use hardware_interface::{gdt, interrupts};
     gdt::init();
     interrupts::init_idt();
     unsafe {
@@ -46,9 +52,7 @@ fn init() {
 }
 
 use bootloader::{BootInfo, entry_point};
-use x86_64::{VirtAddr, structures::paging::{Page}};
-
-use crate::memory::BootInfoFrameAllocator;
+use x86_64::VirtAddr;
 
 
 #[cfg(test)]
@@ -63,6 +67,7 @@ fn test_main(_boot_info: &'static BootInfo) -> ! {
 entry_point!(main);
 
 use alloc::boxed::Box;
+use memory_management::{page_table::BootInfoFrameAllocator, allocator};
 
 fn main(boot_info: &'static BootInfo) -> ! {
     vga_buffer::init();
@@ -74,7 +79,7 @@ fn main(boot_info: &'static BootInfo) -> ! {
     println!("[ok]");
 
     print!("Creating Memory Mapper...");
-    let mut mapper = unsafe { memory::init(phys_mem_offset) };
+    let mut mapper = unsafe { memory_management::page_table::init(phys_mem_offset) };
     println!("[ok]");
 
 
@@ -90,7 +95,7 @@ fn main(boot_info: &'static BootInfo) -> ! {
     
     print!("Testing heap allocation...");
     let heap_string = Box::new("[ok]");
-    print!("{}", heap_string);
+    println!("{}", heap_string);
     
     
 

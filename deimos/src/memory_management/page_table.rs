@@ -1,5 +1,5 @@
 use x86_64::{
-    PhysAddr, VirtAddr, registers, structures::paging::{
+    PhysAddr, VirtAddr, structures::paging::{
         FrameAllocator, OffsetPageTable, PageTable, PhysFrame, Size4KiB
     }
 };

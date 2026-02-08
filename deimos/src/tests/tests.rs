@@ -1,5 +1,5 @@
 use crate::{serial_print, serial_println};
-use crate::emulation::{exit_qemu, QemuExitCode};
+use crate::emulation::qemu::{exit_qemu, QemuExitCode};
 
 #[cfg(test)]
 pub fn test_runner(tests: &[&dyn Testable]) -> ! {

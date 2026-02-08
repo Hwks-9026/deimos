@@ -1,4 +1,4 @@
-use crate::{gdt, println, print};
+use crate::{hardware_interface::gdt, println, print};
 use pic8259::ChainedPics;
 use x86_64::{instructions::hlt, structures::idt::{
     InterruptDescriptorTable, 
