@@ -1,13 +1,27 @@
 use crate::{print, println};
+use crate::memory_management::linked_list::LinkedListAllocator;
 
 pub const HEAP_START: usize = 0x_4444_4444_0000;
 pub const HEAP_SIZE: usize = 1024*1024*8/6;
 
-use linked_list_allocator::LockedHeap;
+pub struct Locked<A> {
+    inner: spin::Mutex<A>
+}
 
+impl<A> Locked<A> {
+    pub const fn new(inner: A) -> Self {
+        Locked {
+            inner: spin::Mutex::new(inner)
+        }
+    }
+
+    pub fn lock(&self) -> spin::MutexGuard<'_, A> {
+        self.inner.lock()
+    }
+}
 
 #[global_allocator]
-static ALLOCATOR: LockedHeap = LockedHeap::empty();
+static ALLOCATOR: Locked<LinkedListAllocator> = Locked::new(LinkedListAllocator::new());
 
 use x86_64::{
     structures::paging::{

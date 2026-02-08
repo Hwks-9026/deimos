@@ -21,6 +21,6 @@ Cargo Dependancies (See deimos/Cargo.toml for versions and features)
 -  *uart_16550*
 -  *pic8259*
 -  *pc-keyboard*
--  *linked_list_allocator (Temporary)*
 
-
+*This project was inspired by, and uses code from the `Wiriting an OS in Rust` blog by Philipp Opperman.
+[https://os.phil-opp.com/]
