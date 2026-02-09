@@ -28,33 +28,78 @@ impl LinkedListAllocator {
         assert_eq!(align_up(addr as u64, mem::align_of::<ListNode>() as u64), addr as u64);
         assert!(size >= mem::size_of::<ListNode>());
 
+        let mut current = &mut self.head;
+        while let Some(ref mut next_node) = current.next {
+            if next_node.start_addr() > addr {
+                break; // The right place to insert free node, ensures that the free regions are
+                       // all sorted by address
+            }
+            current = current.next.as_mut().unwrap();
+        }
+
+
+
         let mut node = ListNode::new(size);
-        node.next = self.head.next.take();
+        node.next = current.next.take();
         let node_ptr = addr as *mut ListNode;
 
+        //safety guarentees are above with assertions
         unsafe {
             node_ptr.write(node);
-            self.head.next = Some(&mut *node_ptr);
+            current.next = Some(&mut *node_ptr);
+        }
+        let current_start_addr = current.start_addr();
+        let current_end_addr = current.end_addr();
+
+
+        let new_ref = current.next.as_mut().unwrap();
+        let new_ref_start_addr = new_ref.start_addr();
+        let new_ref_end_addr = new_ref.end_addr();
+        
+
+        let next_node_data = if let Some(ref mut next_node) = new_ref.next {
+            if new_ref_end_addr == next_node.start_addr() {
+                // The blocks are touching!
+                (Some(next_node.size), Some(next_node.next.take()))
+            }
+            else {(None, None)}
+        }
+        else {(None, None)};
+
+        if let (Some(next_node_size), Some(next_node_next)) = next_node_data {
+                new_ref.size += next_node_size;
+                new_ref.next = next_node_next;
+        }
+
+        if current_start_addr != super::allocator::HEAP_START && current_end_addr == new_ref_start_addr {
+            // The previous block and new block are touching!
+            current.size += new_ref.size;
+            current.next = new_ref.next.take();
         }
     }
     
     // Looks for a free region with the given size and alignment and removes it from the list 
     // Returns a tuple containing the ListNode and start address of the allocation
-    fn find_region(&mut self, size: usize, align: usize)
-        -> Option<(&'static mut ListNode, usize)> {
-        let mut current = &mut self.head;
-        while let Some (ref mut region) = current.next {
-            if let Ok(alloc_start) =Self::alloc_from_region(&region, size, align) {
-                let next = region.next.take();
-                let ret = Some((current.next.take().unwrap(), alloc_start));
-                current.next = next;
-                return ret;
+    fn find_region(&mut self, size: usize, align: usize) 
+        -> Option<(&'static mut ListNode, usize)> 
+    {
+        let mut current = &mut self.head.next;
+
+        loop {
+            let alloc_start = if let Some(region) = current.as_deref() {
+                Self::alloc_from_region(region, size, align).ok()
+            } else {
+                return None; 
+            };
+
+            if let Some(start) = alloc_start {
+                let node = current.take().unwrap();
+                *current = node.next.take();
+                return Some((node, start));
             }
-            else {
-                current = current.next.as_mut().unwrap();
-            }
+
+            current = &mut current.as_mut().unwrap().next;
         }
-        None
     }
 
     fn alloc_from_region(region: &ListNode, size: usize, align: usize) 

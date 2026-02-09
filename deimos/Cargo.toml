@@ -33,7 +33,8 @@ features = ["alloc"]
 
 [package.metadata.bootimage]
 run-args = ["-serial", "stdio",
-            "-m", "4G"]
+            "-m", "4G",
+            "-vga", "virtio"]
 test-args = ["-device", "isa-debug-exit,iobase=0xf4,iosize=0x04", 
              "-serial", "stdio", 
              "-display", "none",

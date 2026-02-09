@@ -72,6 +72,8 @@ fn init(boot_info: &'static BootInfo) {
     let heap_string = Box::new("[ok]");
     println!("{}", heap_string);
 
+    
+
 }
 
 use bootloader::{BootInfo, entry_point};
@@ -108,14 +110,3 @@ fn hlt() -> ! {
         x86_64::instructions::hlt();
     }
 }
-
-async fn async_number() -> Box<u32> {
-    Box::new(42)
-}
-
-async fn example_task() {
-    let number = async_number().await;
-    assert!(*number == 42);
-    println!("[ok]");
-}
-
