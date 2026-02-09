@@ -10,9 +10,7 @@ extern crate alloc;
 
 mod hardware_interface;
 mod memory_management;
-mod async_proc;
 mod emulation;
-mod process;
 
 
 use hardware_interface::vga_buffer;
@@ -43,7 +41,7 @@ fn panic(info: &PanicInfo) -> ! {
     exit_qemu(QemuExitCode::Failed);
 }
 
-fn init(boot_info: &'static BootInfo) -> Executor {
+fn init(boot_info: &'static BootInfo) {
     use hardware_interface::{gdt, interrupts};
     gdt::init();
     interrupts::init_idt();
@@ -74,12 +72,6 @@ fn init(boot_info: &'static BootInfo) -> Executor {
     let heap_string = Box::new("[ok]");
     println!("{}", heap_string);
 
-    print!("Creating Process Executor...");
-    let mut executor = Executor::new();
-    executor.spawn(Task::new(example_task()));
-    executor.run();
-    executor
-
 }
 
 use bootloader::{BootInfo, entry_point};
@@ -100,19 +92,13 @@ entry_point!(main);
 use alloc::boxed::Box;
 use memory_management::{page_table::BootInfoFrameAllocator, allocator};
 
-use crate::process::{exec::Executor, task::Task};
-
 fn main(boot_info: &'static BootInfo) -> ! {
     vga_buffer::init();
     println!("Booting deimOS...");
     
     println!("Initializing...\n"); // 2 newlines are intentional
-    let mut executor = init(boot_info);
+    init(boot_info);
     println!("\n[ok]\n");
-    loop {
-        executor.spawn(Task::new(async_proc::keyboard::print_keypresses()));
-        executor.run();
-    }
 
     hlt(); // call halt that way when interrupts aren't firing, the CPU isn't active
 }

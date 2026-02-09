@@ -1,4 +1,5 @@
-use crate::{hardware_interface::gdt, println, print};
+use crate::{print, println};
+use super::gdt;
 use pic8259::ChainedPics;
 use x86_64::{instructions::hlt, structures::idt::{
     InterruptDescriptorTable, 
@@ -96,8 +97,14 @@ extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStac
 
 
     let scancode: u8 = unsafe { port.read() };
-    crate::async_proc::keyboard::add_scancode(scancode);
-
+    if let Ok(Some(key_event)) = keyboard.add_byte(scancode) {
+        if let Some(key) = keyboard.process_keyevent(key_event) {
+            match key {
+                DecodedKey::Unicode(character) => print!("{}", character),
+                DecodedKey::RawKey(_) => {}, 
+            }
+        }
+    } 
     unsafe {
         PICS.lock().notify_end_of_interrupt(InterruptIndex::Keyboard.as_u8());
     }
