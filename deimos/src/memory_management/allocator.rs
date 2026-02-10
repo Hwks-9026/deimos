@@ -2,7 +2,7 @@ use crate::{print, println};
 use crate::memory_management::linked_list::LinkedListAllocator;
 
 pub const HEAP_START: usize = 0x_4444_4444_0000;
-pub const HEAP_SIZE: usize = 1024*1024*8/6;
+pub const HEAP_SIZE: usize = 4194304; // 2^22
 
 pub struct Locked<A> {
     inner: spin::Mutex<A>
@@ -71,7 +71,7 @@ use core::alloc::Layout;
 
 fn test_coalescence() {
     let chunk_size = 256;
-    let iterations = 100;
+    let iterations = 14000;
     let mut chunks = Vec::new();
 
     for _ in 0..iterations {
