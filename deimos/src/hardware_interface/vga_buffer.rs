@@ -74,6 +74,11 @@ impl VGAWriter {
         self.write_byte_color_code(byte, self.color_code); 
     }
 
+    pub fn write_byte_at(&mut self, byte: u8, pos: (u8, u8)) {
+        self.write_byte_color_code_at(byte, self.color_code, pos); 
+    }
+
+
     #[allow(dead_code)]
     pub fn write_byte_colored(&mut self, byte: u8, fg: Color, bg: Color) {
         self.write_byte_color_code(byte, ColorCode::new(fg, bg)); 
@@ -98,9 +103,18 @@ impl VGAWriter {
             }
         }
     }
+    
+    fn write_byte_color_code_at(&mut self, byte: u8, color_code: ColorCode, pos: (u8, u8)) {
+        self.buffer.chars[pos.0 as usize][pos.1 as usize].write(ScreenChar {
+            ascii_character: byte,
+            color_code,
+        });
+    }
 
-    #[allow(dead_code)]
-    pub fn fill(&mut self, char: ScreenChar) {
+    pub fn clear(&mut self) {
+        self.fill(ScreenChar {ascii_character: ' ' as u8, color_code: self.color_code});
+    } 
+    fn fill(&mut self, char: ScreenChar) {
         for row in self.buffer.chars.iter_mut() {
             for cell in row.iter_mut() {
                 cell.write(char);

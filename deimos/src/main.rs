@@ -1,3 +1,4 @@
+#![feature(core_intrinsics)]
 #![no_std]
 #![no_main]
 #![feature(abi_x86_interrupt)]
@@ -11,8 +12,8 @@ extern crate alloc;
 mod hardware_interface;
 mod memory_management;
 mod emulation;
-
-
+mod donut;
+mod logo;
 use hardware_interface::vga_buffer;
 
 
@@ -71,9 +72,6 @@ fn init(boot_info: &'static BootInfo) {
     print!("Testing heap allocation...");
     let heap_string = Box::new("[ok]");
     println!("{}", heap_string);
-
-    
-
 }
 
 use bootloader::{BootInfo, entry_point};
@@ -100,8 +98,7 @@ fn main(boot_info: &'static BootInfo) -> ! {
     
     println!("Initializing...\n"); // 2 newlines are intentional
     init(boot_info);
-    println!("\n[ok]\n");
-
+    logo::println_logo();
     hlt(); // call halt that way when interrupts aren't firing, the CPU isn't active
 }
 
