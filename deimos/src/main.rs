@@ -12,7 +12,6 @@ extern crate alloc;
 mod hardware_interface;
 mod memory_management;
 mod emulation;
-mod donut;
 mod logo;
 use hardware_interface::vga_buffer;
 

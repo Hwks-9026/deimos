@@ -1,4 +1,4 @@
-use crate::{donut, print, println};
+use crate::{print, println};
 use super::gdt;
 use pic8259::ChainedPics;
 use x86_64::{instructions::hlt, structures::idt::{
@@ -100,17 +100,8 @@ extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStac
     if let Ok(Some(key_event)) = keyboard.add_byte(scancode) {
         if let Some(key) = keyboard.process_keyevent(key_event) {
             match key {
-                DecodedKey::Unicode(character) => {
-                    match character {
-                        'w' => crate::donut::redraw_donut(donut::scene::RotateDirection::Up),
-                        'a' => crate::donut::redraw_donut(donut::scene::RotateDirection::Left),
-                        's' => crate::donut::redraw_donut(donut::scene::RotateDirection::Down),
-                        'd' => crate::donut::redraw_donut(donut::scene::RotateDirection::Right),
-                        _ => {},
-                    }
-
-                }
-                DecodedKey::RawKey(raw_key) => {}, 
+                DecodedKey::Unicode(character) => print!("{}", character),
+                DecodedKey::RawKey(_) => {}, 
             }
         }
     } 
